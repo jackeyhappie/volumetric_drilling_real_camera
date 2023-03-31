@@ -44,7 +44,7 @@
 #define GL_SILENCE_DEPRECATION
 #include <afFramework.h>
 #include <ros/ros.h>
-
+#include <sensor_msgs/Image.h>
 using namespace std;
 using namespace ambf;
 
@@ -86,6 +86,9 @@ protected:
     float m_warp_scale;
     float m_warp_adj;
     float m_vpos;
+
+    ros::NodeHandle* m_rosNode;
+    ros::Subscriber sub;
 };
 
 

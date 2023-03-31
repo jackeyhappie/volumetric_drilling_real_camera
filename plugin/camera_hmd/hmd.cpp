@@ -45,7 +45,6 @@
 
 #include "hmd.h"
 #include <ros/ros.h>
-#include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -74,14 +73,14 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 {
 
     m_rosNode = afROSNode::getNode();
-    sub = m_rosNode.subscribe<sensor_msgs::Image>("/ambf/env/cameras/main_camera/ImageData", 10, imageCallback)
+    sub = m_rosNode->subscribe("/ambf/env/cameras/main_camera/ImageData", 10, &afCameraHMD::imageCallback, this);
 
     //ros::Subscriber sub = NodeHandle_.subscribe<sensor_msgs::Image>("/ambf/env/cameras/main_camera/ImageData", 10, imageCallback);
 
     return 1;
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
    cv_bridge::CvImagePtr cv_ptr;
   try
