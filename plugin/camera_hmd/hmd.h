@@ -45,6 +45,8 @@
 #include <afFramework.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
+#include <chai3d.h>
 using namespace std;
 using namespace ambf;
 
@@ -89,6 +91,9 @@ protected:
 
     ros::NodeHandle* m_rosNode;
     ros::Subscriber sub;
+    cv_bridge::CvImagePtr cv_ptr;
+    cTexture1dPtr texture = cTexture1d::create();
+    
 };
 
 
