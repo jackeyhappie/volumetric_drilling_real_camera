@@ -54,7 +54,7 @@ main_camera:
   monitor: 0
   # multipass: true
   visible: true
-  # publish image: true
+  publish image: true
   # preprocessing shaders:
   #    path: ../shaders/preprocessing/
   #    vertex: shader.vs
@@ -108,7 +108,7 @@ cameraR:
   field view angle: 0.0959263737541534
   monitor: 0
   # multipass: true
-  # publish image: true
+  publish image: true
   # visible: False
   # preprocessing shaders:
   #   path: ../../../ambf_shaders/preprocessing/
