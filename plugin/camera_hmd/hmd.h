@@ -92,7 +92,7 @@ protected:
     ros::NodeHandle* m_rosNode;
     ros::Subscriber sub;
     cv_bridge::CvImagePtr cv_ptr;
-    cTexture1dPtr texture = cTexture1d::create();
+    cTexture2dPtr m_rosImageTexture;
     
 };
 

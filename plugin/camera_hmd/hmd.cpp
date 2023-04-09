@@ -150,8 +150,13 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_quadMesh->m_vertices->setTexCoord(4, 1.0, 0.0, 1.0);
     m_quadMesh->m_vertices->setTexCoord(5, 1.0, 1.0, 1.0);
 
+    m_rosImageTexture = cTexture2d::create();
+//    m_rosImageTexture->setTextureId(0);
+//    m_rosImageTexture->setTextureUnit(GL_TEXTURE0);
+
     m_quadMesh->computeAllNormals();
-    m_quadMesh->m_texture = texture;
+//    m_quadMesh->m_texture = m_frameBuffer->m_imageBuffer;
+    m_quadMesh->m_texture = m_rosImageTexture;
     m_quadMesh->setUseTexture(true);
 
     m_quadMesh->setShaderProgram(m_shaderPgm);
@@ -162,7 +167,37 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 
     cerr << "INFO! LOADING VR PLUGIN \n";
 
+
     return 1;
+}
+
+GLenum getImageFormat(const std::string& encoding){
+    if (encoding.compare("rgb8") == 0 || encoding.compare("rgba8") || encoding.compare("rgb16") || encoding.compare("rgba16")){
+        return GL_RGB;
+    }
+    else if (encoding.compare("bgr8") == 0 || encoding.compare("bgra8") || encoding.compare("bgr16") || encoding.compare("bgra16")){
+        return GL_BGR;
+    }
+    else if (encoding.compare("mono8") == 0 || encoding.compare("mono16") == 0){
+        return GL_LUMINANCE;
+    }
+    else{
+        cerr << "ERROR! IMAGE PIXEL FORMAT NOT IMPLEMENTED: " << encoding << endl;
+        return GL_RGB;
+    }
+}
+
+GLenum getImageType(const std::string& encoding){
+    if (encoding.compare("8") > 0){
+        return GL_UNSIGNED_BYTE;
+    }
+    else if (encoding.compare("16") > 0){
+        return GL_UNSIGNED_INT;
+    }
+    else{
+        cerr << "ERROR! IMAGE PIXEL TYPE NOT IMPLEMENTED: " << encoding << endl;
+        return GL_UNSIGNED_BYTE;
+    }
 }
 
 void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
@@ -170,7 +205,7 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
   try
   {
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
 
   }
   catch (cv_bridge::Exception& e)
@@ -178,10 +213,19 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("Could not convert");
   }
 
-  cImagePtr cvimage= cImage::create();
-  cvimage->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGBA, GL_UNSIGNED_INT);
-  cvimage->setData(cv_ptr->image.data, cv_ptr->image.cols*cv_ptr->image.rows*cv_ptr->image.elemSize());
-  texture->setImage(cvimage);
+    int ros_image_size = cv_ptr->image.cols*cv_ptr->image.rows*cv_ptr->image.elemSize();
+    int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
+
+  if (ros_image_size != texture_image_size){
+      m_rosImageTexture->m_image->erase();
+      m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
+  }
+
+
+//  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
+  m_rosImageTexture->m_image->setData(cv_ptr->image.data, ros_image_size);
+  m_rosImageTexture->markForUpdate();
+
   cv::imshow("view", cv_ptr->image);
   cv::waitKey(1);
 }
@@ -193,6 +237,7 @@ void afCameraHMD::graphicsUpdate()
         makeFullScreen();
         first_time = false;
     }
+
     glfwMakeContextCurrent(m_camera->m_window);
     m_frameBuffer->renderView();
     updateHMDParams();
@@ -230,7 +275,7 @@ void afCameraHMD::updateHMDParams()
     GLint id = m_shaderPgm->getId();
     //    cerr << "INFO! Shader ID " << id << endl;
     glUseProgram(id);
-    glUniform1i(glGetUniformLocation(id, "warpTexture"), 2);
+//    glUniform1i(glGetUniformLocation(id, "warpTexture"), m_rosImageTexture->getTextureId());
     glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
     glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
     glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale*m_warp_adj);
