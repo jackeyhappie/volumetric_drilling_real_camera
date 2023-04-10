@@ -3,25 +3,19 @@
     Software License Agreement (BSD License)
     Copyright (c) 2019-2022, AMBF
     (https://github.com/WPI-AIM/ambf)
-
     All rights reserved.
-
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
-
     * Redistributions of source code must retain the above copyright
     notice, this list of conditions and the following disclaimer.
-
     * Redistributions in binary form must reproduce the above
     copyright notice, this list of conditions and the following
     disclaimer in the documentation and/or other materials provided
     with the distribution.
-
     * Neither the name of authors nor the names of its contributors may
     be used to endorse or promote products derived from this software
     without specific prior written permission.
-
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
     "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
     LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -34,10 +28,8 @@
     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
-
     \author    <amunawar@wpi.edu>
     \author    Adnan Munawar
-
     \author    <pkunjam1@jhu.edu>
     \author    Punit Kunjam
 */
@@ -74,9 +66,12 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 
     
     m_rosNode = afROSNode::getNode();
-    sub = m_rosNode->subscribe("/ambf/env/cameras/main_camera/ImageData", 10, &afCameraHMD::imageCallback, this);
+    //sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 10, &afCameraHMD::imageCallback, this);
+    sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 10, &afCameraHMD::imageCallback, this);
+    m_rosNode2 = afROSNode::getNode();
+    //sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 10, &afCameraHMD::imageCallback2, this);
+    sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 10, &afCameraHMD::imageCallback2, this);
    
-    //ros::Subscriber sub = NodeHandle_.subscribe<sensor_msgs::Image>("/ambf/env/cameras/main_camera/ImageData", 10, imageCallback);
 
     m_camera = (afCameraPtr)a_afObjectPtr;
     m_camera->setOverrideRendering(true);
@@ -213,8 +208,29 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("Could not convert");
   }
 
-    int ros_image_size = cv_ptr->image.cols*cv_ptr->image.rows*cv_ptr->image.elemSize();
-    int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
+  //cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(cv_ptr->image.cols/2,cv_ptr->image.rows/2));
+  //cv::imshow("Image1", cv_ptr->image);
+  //cv::waitKey(1);
+  
+}
+
+void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr& msg)
+{
+
+  try
+  {
+    cv_ptr2 = cv_bridge::toCvCopy(msg, msg->encoding);
+
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("Could not convert");
+  }
+  
+  cv::hconcat(cv_ptr->image, cv_ptr2->image, cv_ptr->image);
+  cv::flip(cv_ptr->image, cv_ptr->image, 0);
+  int ros_image_size = cv_ptr->image.cols*cv_ptr->image.rows*cv_ptr->image.elemSize();
+  int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
 
   if (ros_image_size != texture_image_size){
       m_rosImageTexture->m_image->erase();
@@ -222,12 +238,14 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
   }
 
 
-//  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
+  //  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
   m_rosImageTexture->m_image->setData(cv_ptr->image.data, ros_image_size);
   m_rosImageTexture->markForUpdate();
-
-  cv::imshow("view", cv_ptr->image);
-  cv::waitKey(1);
+  //cv::imshow("Image1", cv_ptr->image);
+  //cv::waitKey(1);
+  //cv::resize(cv_ptr2->image,cv_ptr2->image,cv::Size(cv_ptr2->image.cols/2,cv_ptr2->image.rows/2));
+  //cv::imshow("Image2", cv_ptr2->image);
+  //cv::waitKey(1);
 }
 
 void afCameraHMD::graphicsUpdate()
