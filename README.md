@@ -2,7 +2,14 @@
 
 ## Overview
 
-This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF. To achieve this, we changes the 6 files based on original volumetric_drilling project. They are "./ADF/world/world.yaml", "./launch.yaml", "./CMakeLists.txt", "~/ADF/single_stereo_camera.yaml", "~/plugin/camera_hmd/hmd.cpp" and "~/plugin/camera_hmd/hmd.h".
+This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF. To achieve this, we changes the 6 files based on original volumetric_drilling project. They are "./ADF/world/world.yaml", "./launch.yaml", "./CMakeLists.txt", "./ADF/single_stereo_camera.yaml", "./plugin/camera_hmd/hmd.cpp" and "./plugin/camera_hmd/hmd.h".
+We will introduce these changes in detail.
+
+## "./ADF/world/world.yaml"
+World.yaml file determines the lights and cameras in AMBF simulation environment. We uncomment all "publish image: true" for main camera, left camera and right camera to enable them to publish the video as rostopics. Then, we can subscribe these rostopics to read whichever video we want.
+
+## "./launch.yaml"
+launch.yaml file determines the meaning of number when start the AMBF in command.
 
 
 The following is the README file of volumetric_drilling project.
