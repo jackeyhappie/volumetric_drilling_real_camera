@@ -2,14 +2,28 @@
 
 ## Overview
 
-This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF. To achieve this, we changes the 6 files based on original volumetric_drilling project. They are "./ADF/world/world.yaml", "./launch.yaml", "./CMakeLists.txt", "./ADF/single_stereo_camera.yaml", "./plugin/camera_hmd/hmd.cpp" and "./plugin/camera_hmd/hmd.h".
+This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF. To achieve this, we changes the 6 files based on original volumetric_drilling project. They are "./ADF/world/world.yaml", "./launch.yaml", "./CMakeLists.txt", "./ADF/single_stereo_camera.yaml", "./plugin/camera_hmd/hmd.h" and "./plugin/camera_hmd/hmd.cpp".
 We will introduce these changes in detail.
 
 ## "./ADF/world/world.yaml"
 World.yaml file determines the lights and cameras in AMBF simulation environment. We uncomment all "publish image: true" for main camera, left camera and right camera to enable them to publish the video as rostopics. Then, we can subscribe these rostopics to read whichever video we want.
 
 ## "./launch.yaml"
-launch.yaml file determines the meaning of number when start the AMBF in command.
+launch.yaml file determines the meaning of number when start the AMBF in command. We may later wrap all the things into a new plugin for AMBF and add it in the lauch.yaml.
+
+## "./CMakeLists.txt"
+CMakeLists.txt determines the required environment for the whole program. We use several package which the original volumetric_drilling project does not need. So, we add them into find_packages and catkin_packages such as ROS package sensor_msg.
+
+## "./ADF/single_stereo_camera.yaml"
+This file is launched when running 6 in the command. It only contains stereoLR camera in volumetric_drilling project. We add two more camera (stereoL and stereoR) so as to read stereo videos for HMD. The format for adding camera refers to  "./ADF/stereo_cameras.yaml".
+
+## "./plugin/camera_hmd/hmd.h"
+This file is the head file for "./plugin/camera_hmd/hmd.cpp". We add two pointers of ros::NodeHandle, two ros::Subscriber, two cv_bridge::CvImagePtr and one point of chai3D::cTexture2d for the usage in "./plugin/camera_hmd/hmd.cpp".
+
+## "./plugin/camera_hmd/hmd.cpp"
+This file is a pulgin for AMBF. We read and progress videos from real stereo microscope in it. 
+We create ROS nodes by "afROSNode::getNode()" and subscribe proper rostopic to read videos from camera. A "imageCallback" is written to do that. After storing the current frames in cv_bridge::CvImagePtr, we modified them in one frame with required size. Then, we create a chai3D::cImage and allocate it according to the frame. We pass the frame to the chai3D::cImage by function "setData". After that, we create a chai3D::cTextured2DPtr and pass chai3D::cImage to it. We finally replace “m_quadMesh->m_texture” with that chai3D::cTextured2DPtr.
+Running the project, we can see the processed AMBF videos are replaced by the processed real videos from stereo microscope.
 
 
 ### The following is the README file of volumetric_drilling project.
