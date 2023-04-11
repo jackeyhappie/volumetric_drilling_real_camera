@@ -21,7 +21,7 @@ This file is launched when running 6 in the command. It only contains stereoLR c
 This file is the head file for "./plugin/camera_hmd/hmd.cpp". We add two pointers of ros::NodeHandle, two ros::Subscriber, two cv_bridge::CvImagePtr and one point of chai3D::cTexture2d for the usage in "./plugin/camera_hmd/hmd.cpp".
 
 ## "./plugin/camera_hmd/hmd.cpp"
-This file is a pulgin for AMBF. We read and progress videos from real stereo microscope in it. 
+This file is a plugin for AMBF. We read and progress videos from real stereo microscope in it. 
 We create ROS nodes by "afROSNode::getNode()" and subscribe proper rostopic to read videos from camera. A "imageCallback" is written to do that. After storing the current frames in cv_bridge::CvImagePtr, we modified them in one frame with required size. Then, we create a chai3D::cImage and allocate it according to the frame. We pass the frame to the chai3D::cImage by function "setData". After that, we create a chai3D::cTextured2DPtr and pass chai3D::cImage to it. We finally replace “m_quadMesh->m_texture” with that chai3D::cTextured2DPtr.
 Running the project, we can see the processed AMBF videos are replaced by the processed real videos from stereo microscope.
 
