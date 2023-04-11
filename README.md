@@ -2,11 +2,10 @@
 
 ## Overview
 
-This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF.
-The difference 
+This fork adds the function that reading videos from real camera and displaying it in HMD together with videos from AMBF. To achieve this, we changes the 6 files based on original volumetric_drilling project. They are "~/ADF/world/world.yaml", "~/launch.yaml", "~/CMakeLists.txt", "~/ADF/single_stereo_camera.yaml", "~/plugin/camera_hmd/hmd.cpp" and "~/plugin/camera_hmd/hmd.h".
 
 
-
+The following is the README file of volumetric_drilling project.
 # Drilling Simulator
 ### [News Coverage](https://techxplore.com/news/2021-12-virtual-reality-simulator-surgeons-skull-base.html) | [Paper](https://arxiv.org/abs/2111.08097) | [Video](https://youtu.be/36pYIt1KGs4)
 This repo provides a realistic virtual drilling simulator presented in our Best Paper at AE-CAI MICCAI 2021, [Virtual reality for synergistic surgical training and data generation](https://arxiv.org/abs/2111.08097).
