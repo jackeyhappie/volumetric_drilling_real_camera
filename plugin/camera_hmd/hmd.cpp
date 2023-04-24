@@ -44,7 +44,6 @@
 
 using namespace std;
 
-
 //------------------------------------------------------------------------------
 // DECLARED FUNCTIONS
 //------------------------------------------------------------------------------
@@ -64,14 +63,12 @@ afCameraHMD::afCameraHMD()
 int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAttribsPtr a_objectAttribs)
 {
 
-    
     m_rosNode = afROSNode::getNode();
-    //sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 10, &afCameraHMD::imageCallback, this);
-    sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 10, &afCameraHMD::imageCallback, this);
+    sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 5, &afCameraHMD::imageCallback, this);
+    // sub = m_rosNode->subscribe("/decklink_left/camera/image_raw/compressed", 5, &afCameraHMD::imageCallback, this);
     m_rosNode2 = afROSNode::getNode();
-    //sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 10, &afCameraHMD::imageCallback2, this);
-    sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 10, &afCameraHMD::imageCallback2, this);
-   
+    sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 5, &afCameraHMD::imageCallback2, this);
+    // sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw/compressed", 5, &afCameraHMD::imageCallback2, this);
 
     m_camera = (afCameraPtr)a_afObjectPtr;
     m_camera->setOverrideRendering(true);
@@ -90,7 +87,8 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     shaderAttribs.m_fragFilepath = g_current_filepath + "/shaders/hmd_distortion.fs";
 
     m_shaderPgm = afShaderUtils::createFromAttribs(&shaderAttribs, "TEST", "VR_CAM");
-    if (!m_shaderPgm){
+    if (!m_shaderPgm)
+    {
         cerr << "ERROR! FAILED TO LOAD SHADER PGM \n";
         return -1;
     }
@@ -104,18 +102,34 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_distortion_coeffs[2] = -0.241;
     m_distortion_coeffs[3] = 0.89;
 
+    m_distortion_coeffs2[0] = 0.098/3;
+    m_distortion_coeffs2[1] = 0.324/3;
+    m_distortion_coeffs2[2] = -0.241/3;
+    m_distortion_coeffs2[3] = 0.89/3;
+
     m_aberr_scale[0] = 1.0;
     m_aberr_scale[1] = 1.0;
     m_aberr_scale[2] = 1.0;
 
+    m_aberr_scale2[0] = 1.0*10;
+    m_aberr_scale2[1] = 1.0*10;
+    m_aberr_scale2[2] = 1.0*10;
+
     m_sep = 0.057863;
     m_vpos = 0.033896;
+    m_vpos2 = 0.033896+0.03;
 
-    m_left_lens_center[0] = m_viewport_scale[0] - m_sep/2.0;
+    m_left_lens_center[0] = m_viewport_scale[0] - m_sep / 2.0;
     m_left_lens_center[1] = m_vpos;
 
-    m_right_lens_center[0] = m_sep/2.0;
+    m_right_lens_center[0] = m_sep / 2.0;
     m_right_lens_center[1] = m_vpos;
+
+    m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0-0.02;
+    m_left_lens_center2[1] = m_vpos2;
+
+    m_right_lens_center2[0] = m_sep / 2.0-0.02;
+    m_right_lens_center2[1] = m_vpos2;
 
     m_warp_scale = (m_left_lens_center[0] > m_right_lens_center[0]) ? m_left_lens_center[0] : m_right_lens_center[0];
     m_warp_adj = 1.0;
@@ -123,15 +137,28 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_quadMesh = new cMesh();
     float quad[] = {
         // positions
-         -1.0f,  1.0f, 0.0f,
-         -1.0f, -1.0f, 0.0f,
-          1.0f, -1.0f, 0.0f,
-         -1.0f,  1.0f, 0.0f,
-          1.0f, -1.0f, 0.0f,
-          1.0f,  1.0f, 0.0f,
+        -1.0f,
+        1.0f,
+        0.0f,
+        -1.0f,
+        -1.0f,
+        0.0f,
+        1.0f,
+        -1.0f,
+        0.0f,
+        -1.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        -1.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        0.0f,
     };
 
-    for (int vI = 0 ; vI < 2 ; vI++){
+    for (int vI = 0; vI < 2; vI++)
+    {
         int off = vI * 9;
         cVector3d v0(quad[off + 0], quad[off + 1], quad[off + 2]);
         cVector3d v1(quad[off + 3], quad[off + 4], quad[off + 5]);
@@ -146,12 +173,13 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_quadMesh->m_vertices->setTexCoord(5, 1.0, 1.0, 1.0);
 
     m_rosImageTexture = cTexture2d::create();
-//    m_rosImageTexture->setTextureId(0);
-//    m_rosImageTexture->setTextureUnit(GL_TEXTURE0);
+    //    m_rosImageTexture->setTextureId(0);
+    //    m_rosImageTexture->setTextureUnit(GL_TEXTURE0);
 
     m_quadMesh->computeAllNormals();
-//    m_quadMesh->m_texture = m_frameBuffer->m_imageBuffer;
+    // m_quadMesh->m_texture = m_frameBuffer->m_imageBuffer;
     m_quadMesh->m_texture = m_rosImageTexture;
+    m_quadMesh->m_metallicTexture = m_frameBuffer->m_imageBuffer;
     m_quadMesh->setUseTexture(true);
 
     m_quadMesh->setShaderProgram(m_shaderPgm);
@@ -162,96 +190,108 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 
     cerr << "INFO! LOADING VR PLUGIN \n";
 
-
     return 1;
 }
 
-GLenum getImageFormat(const std::string& encoding){
-    if (encoding.compare("rgb8") == 0 || encoding.compare("rgba8") || encoding.compare("rgb16") || encoding.compare("rgba16")){
+GLenum getImageFormat(const std::string &encoding)
+{
+    if (encoding.compare("rgb8") == 0 || encoding.compare("rgba8") || encoding.compare("rgb16") || encoding.compare("rgba16"))
+    {
         return GL_RGB;
     }
-    else if (encoding.compare("bgr8") == 0 || encoding.compare("bgra8") || encoding.compare("bgr16") || encoding.compare("bgra16")){
+    else if (encoding.compare("bgr8") == 0 || encoding.compare("bgra8") || encoding.compare("bgr16") || encoding.compare("bgra16"))
+    {
         return GL_BGR;
     }
-    else if (encoding.compare("mono8") == 0 || encoding.compare("mono16") == 0){
+    else if (encoding.compare("mono8") == 0 || encoding.compare("mono16") == 0)
+    {
         return GL_LUMINANCE;
     }
-    else{
+    else
+    {
         cerr << "ERROR! IMAGE PIXEL FORMAT NOT IMPLEMENTED: " << encoding << endl;
         return GL_RGB;
     }
 }
 
-GLenum getImageType(const std::string& encoding){
-    if (encoding.compare("8") > 0){
+GLenum getImageType(const std::string &encoding)
+{
+    if (encoding.compare("8") > 0)
+    {
         return GL_UNSIGNED_BYTE;
     }
-    else if (encoding.compare("16") > 0){
+    else if (encoding.compare("16") > 0)
+    {
         return GL_UNSIGNED_INT;
     }
-    else{
+    else
+    {
         cerr << "ERROR! IMAGE PIXEL TYPE NOT IMPLEMENTED: " << encoding << endl;
         return GL_UNSIGNED_BYTE;
     }
 }
 
-void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr& msg)
+void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr &msg)
+// void afCameraHMD::imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg)
 {
 
-  try
-  {
-    cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
+    try
+    {
+        cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
+        // frame = cv::imdecode(cv::Mat(msg->data), CV_LOAD_IMAGE_COLOR);
+    }
+    catch (cv_bridge::Exception &e)
+    {
+        ROS_ERROR("Could not convert");
+    }
 
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("Could not convert");
-  }
-
-  //cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(cv_ptr->image.cols/2,cv_ptr->image.rows/2));
-  //cv::imshow("Image1", cv_ptr->image);
-  //cv::waitKey(1);
-  
+    // cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(cv_ptr->image.cols/2,cv_ptr->image.rows/2));
+    //   cv::imshow("Image1", frame);
+    //   cv::waitKey(1);
 }
 
-void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr& msg)
+void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr &msg)
+// void afCameraHMD::imageCallback2(const sensor_msgs::CompressedImage::ConstPtr& msg)
 {
 
-  try
-  {
-    cv_ptr2 = cv_bridge::toCvCopy(msg, msg->encoding);
+    try
+    {
+        cv_ptr2 = cv_bridge::toCvCopy(msg, msg->encoding);
+        // frame2 = cv::imdecode(cv::Mat(msg->data), CV_LOAD_IMAGE_COLOR);
+    }
+    catch (cv_bridge::Exception &e)
+    {
+        ROS_ERROR("Could not convert");
+    }
 
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("Could not convert");
-  }
-  
-  cv::hconcat(cv_ptr->image, cv_ptr2->image, cv_ptr->image);
-  cv::flip(cv_ptr->image, cv_ptr->image, 0);
-  int ros_image_size = cv_ptr->image.cols*cv_ptr->image.rows*cv_ptr->image.elemSize();
-  int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
+    cv::hconcat(cv_ptr->image, cv_ptr2->image, cv_ptr->image);
+    cv::flip(cv_ptr->image, cv_ptr->image, 0);
+    //   cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+    int ros_image_size = cv_ptr->image.cols * cv_ptr->image.rows * cv_ptr->image.elemSize();
+    int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
 
-  if (ros_image_size != texture_image_size){
-      m_rosImageTexture->m_image->erase();
-      m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
-  }
+    if (ros_image_size != texture_image_size)
+    {
+        m_rosImageTexture->m_image->erase();
+        //   m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
+        m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGB, GL_UNSIGNED_BYTE);
+    }
 
-
-  //  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
-  m_rosImageTexture->m_image->setData(cv_ptr->image.data, ros_image_size);
-  m_rosImageTexture->markForUpdate();
-  //cv::imshow("Image1", cv_ptr->image);
-  //cv::waitKey(1);
-  //cv::resize(cv_ptr2->image,cv_ptr2->image,cv::Size(cv_ptr2->image.cols/2,cv_ptr2->image.rows/2));
-  //cv::imshow("Image2", cv_ptr2->image);
-  //cv::waitKey(1);
+    //  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
+    m_rosImageTexture->m_image->setData(cv_ptr->image.data, ros_image_size);
+    m_rosImageTexture->markForUpdate();
+    // cv::imshow("Image1", cv_ptr->image);
+    // cv::waitKey(1);
+    // cv::resize(cv_ptr2->image,cv_ptr2->image,cv::Size(cv_ptr2->image.cols/2,cv_ptr2->image.rows/2));
+    // cv::imshow("Image2", cv_ptr2->image);
+    // cv::waitKey(1);
 }
 
 void afCameraHMD::graphicsUpdate()
 {
     static bool first_time = true;
-    if (first_time) {
+    if (first_time)
+    {
         makeFullScreen();
         first_time = false;
     }
@@ -262,11 +302,11 @@ void afCameraHMD::graphicsUpdate()
     afRenderOptions ro;
     ro.m_updateLabels = true;
 
-    cWorld* cachedWorld = m_camera->getInternalCamera()->getParentWorld();
+    cWorld *cachedWorld = m_camera->getInternalCamera()->getParentWorld();
     m_camera->getInternalCamera()->setStereoMode(C_STEREO_DISABLED);
     m_camera->getInternalCamera()->setParentWorld(m_vrWorld);
-    static cWorld* ew = new cWorld();
-    cWorld* fl = m_camera->getInternalCamera()->m_frontLayer;
+    static cWorld *ew = new cWorld();
+    cWorld *fl = m_camera->getInternalCamera()->m_frontLayer;
     m_camera->getInternalCamera()->m_frontLayer = ew;
     m_camera->render(ro);
     m_camera->getInternalCamera()->m_frontLayer = fl;
@@ -276,11 +316,10 @@ void afCameraHMD::graphicsUpdate()
 
 void afCameraHMD::physicsUpdate(double dt)
 {
-
 }
 
-void afCameraHMD::reset(){
-
+void afCameraHMD::reset()
+{
 }
 
 bool afCameraHMD::close()
@@ -293,29 +332,38 @@ void afCameraHMD::updateHMDParams()
     GLint id = m_shaderPgm->getId();
     //    cerr << "INFO! Shader ID " << id << endl;
     glUseProgram(id);
-//    glUniform1i(glGetUniformLocation(id, "warpTexture"), m_rosImageTexture->getTextureId());
+    glUniform1i(glGetUniformLocation(id, "warpTexture2"), 2);
+    //  //    glUniform1i(glGetUniformLocation(id, "warpTexture"), m_rosImageTexture->getTextureId());
+    
+    // glUniform1i(glGetUniformLocation(id, "warpTexture"), m_rosImageTexture->getTextureId());
+    
     glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
     glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
-    glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale*m_warp_adj);
+    glUniform3fv(glGetUniformLocation(id, "aberr2"), 1, m_aberr_scale2);
+    glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale * m_warp_adj);
     glUniform4fv(glGetUniformLocation(id, "HmdWarpParam"), 1, m_distortion_coeffs);
     glUniform2fv(glGetUniformLocation(id, "LensCenterLeft"), 1, m_left_lens_center);
     glUniform2fv(glGetUniformLocation(id, "LensCenterRight"), 1, m_right_lens_center);
+    glUniform4fv(glGetUniformLocation(id, "HmdWarpParam2"), 1, m_distortion_coeffs2);
+    glUniform2fv(glGetUniformLocation(id, "LensCenterLeft2"), 1, m_left_lens_center2);
+    glUniform2fv(glGetUniformLocation(id, "LensCenterRight2"), 1, m_right_lens_center2);
 }
 
 void afCameraHMD::makeFullScreen()
 {
-    const GLFWvidmode* mode = glfwGetVideoMode(m_camera->m_monitor);
+    const GLFWvidmode *mode = glfwGetVideoMode(m_camera->m_monitor);
     int w = 2880;
     int h = 1600;
     int x = mode->width - w;
     int y = mode->height - h;
     int xpos, ypos;
     glfwGetMonitorPos(m_camera->m_monitor, &xpos, &ypos);
-    x += xpos; y += ypos;
+    x += xpos;
+    y += ypos;
     glfwSetWindowPos(m_camera->m_window, x, y);
     glfwSetWindowSize(m_camera->m_window, w, h);
     m_camera->m_width = w;
     m_camera->m_height = h;
     glfwSwapInterval(0);
-    cerr << "\t Making " << m_camera->getName() << " fullscreen \n" ;
+    cerr << "\t Making " << m_camera->getName() << " fullscreen \n";
 }

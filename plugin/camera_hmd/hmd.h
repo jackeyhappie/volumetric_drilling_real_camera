@@ -54,6 +54,9 @@ public:
     virtual bool close() override;
     void imageCallback(const sensor_msgs::ImageConstPtr& msg);
     void imageCallback2(const sensor_msgs::ImageConstPtr& msg);
+    // void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
+    // void imageCallback2(const sensor_msgs::CompressedImage::ConstPtr& msg);
+    
 
     void updateHMDParams();
 
@@ -83,10 +86,17 @@ protected:
     float m_warp_adj;
     float m_vpos;
 
+    float m_distortion_coeffs2[4];
+    float m_aberr_scale2[3];
+    float m_left_lens_center2[2];
+    float m_right_lens_center2[2];
+    float m_vpos2;
+
     ros::NodeHandle* m_rosNode;
     ros::NodeHandle* m_rosNode2;
     ros::Subscriber sub, sub2;
     cv_bridge::CvImagePtr cv_ptr, cv_ptr2;
+    // cv::Mat frame, frame2;
     cTexture2dPtr m_rosImageTexture;
     
 };
