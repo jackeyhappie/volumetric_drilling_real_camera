@@ -64,11 +64,11 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 {
 
     m_rosNode = afROSNode::getNode();
-    sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 5, &afCameraHMD::imageCallback, this);
-    // sub = m_rosNode->subscribe("/decklink_left/camera/image_raw/compressed", 5, &afCameraHMD::imageCallback, this);
+    // sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 2, &afCameraHMD::imageCallback, this);
+    sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 2, &afCameraHMD::imageCallback, this);
     m_rosNode2 = afROSNode::getNode();
-    sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 5, &afCameraHMD::imageCallback2, this);
-    // sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw/compressed", 5, &afCameraHMD::imageCallback2, this);
+    // sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 2, &afCameraHMD::imageCallback2, this);
+    sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 2, &afCameraHMD::imageCallback2, this);
 
     m_camera = (afCameraPtr)a_afObjectPtr;
     m_camera->setOverrideRendering(true);
@@ -97,27 +97,37 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_viewport_scale[0] /= 2.0;
     m_viewport_scale[1] = 0.068234f;
 
-    m_distortion_coeffs[0] = 0.098;
-    m_distortion_coeffs[1] = 0.324;
-    m_distortion_coeffs[2] = -0.241;
-    m_distortion_coeffs[3] = 0.89;
+    // m_distortion_coeffs[0] = 0.098;
+    // m_distortion_coeffs[1] = 0.324;
+    // m_distortion_coeffs[2] = -0.241;
+    // m_distortion_coeffs[3] = 0.89;
 
-    m_distortion_coeffs2[0] = 0.098/3;
-    m_distortion_coeffs2[1] = 0.324/3;
-    m_distortion_coeffs2[2] = -0.241/3;
-    m_distortion_coeffs2[3] = 0.89/3;
+    // m_distortion_coeffs[0] = 0.008;
+    // m_distortion_coeffs[1] = 0.01;
+    // m_distortion_coeffs[2] = -0.00;
+    // m_distortion_coeffs[3] = 1-m_distortion_coeffs[0]-m_distortion_coeffs[1]-m_distortion_coeffs[2];
+
+    m_distortion_coeffs[0] = 0.008;
+    m_distortion_coeffs[1] = 0.03;
+    m_distortion_coeffs[2] = -0.001;
+    m_distortion_coeffs[3] = 1-m_distortion_coeffs[0]-m_distortion_coeffs[1]-m_distortion_coeffs[2];
+
+    m_distortion_coeffs2[0] = 0.008;
+    m_distortion_coeffs2[1] = 0.5;
+    m_distortion_coeffs2[2] = -0.3;
+    m_distortion_coeffs2[3] = 1-m_distortion_coeffs2[0]-m_distortion_coeffs2[1]-m_distortion_coeffs2[2];
 
     m_aberr_scale[0] = 1.0;
     m_aberr_scale[1] = 1.0;
     m_aberr_scale[2] = 1.0;
 
-    m_aberr_scale2[0] = 1.0*10;
-    m_aberr_scale2[1] = 1.0*10;
-    m_aberr_scale2[2] = 1.0*10;
+    m_aberr_scale2[0] = 1.0*8;
+    m_aberr_scale2[1] = 1.0*8;
+    m_aberr_scale2[2] = 1.0*8;
 
     m_sep = 0.057863;
     m_vpos = 0.033896;
-    m_vpos2 = 0.033896+0.03;
+    m_vpos2 = 0.033896+0.015;
 
     m_left_lens_center[0] = m_viewport_scale[0] - m_sep / 2.0;
     m_left_lens_center[1] = m_vpos;
@@ -125,10 +135,10 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_right_lens_center[0] = m_sep / 2.0;
     m_right_lens_center[1] = m_vpos;
 
-    m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0-0.02;
+    m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0-0.015;
     m_left_lens_center2[1] = m_vpos2;
 
-    m_right_lens_center2[0] = m_sep / 2.0-0.02;
+    m_right_lens_center2[0] = m_sep / 2.0-0.015;
     m_right_lens_center2[1] = m_vpos2;
 
     m_warp_scale = (m_left_lens_center[0] > m_right_lens_center[0]) ? m_left_lens_center[0] : m_right_lens_center[0];
