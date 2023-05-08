@@ -25,6 +25,8 @@ This file is a plugin for AMBF. We read and progress videos from real stereo mic
 We create ROS nodes by "afROSNode::getNode()" and subscribe proper rostopic to read videos from camera. A "imageCallback" is written to do that. After storing the current frames in cv_bridge::CvImagePtr, we modified them in one frame with required size. Then, we create a chai3D::cImage and allocate it according to the frame. We pass the frame to the chai3D::cImage by function "setData". After that, we create a chai3D::cTextured2DPtr and pass chai3D::cImage to it. We finally replace “m_quadMesh->m_texture” with that chai3D::cTextured2DPtr.
 Running the project, we can see the processed AMBF videos are replaced by the processed real videos from stereo microscope.
 
+## "./plugin/camera_hmd/shaders/hmd_distortion.fs"
+This file contains the distortion process for both groups of stereo videos.
 
 ### The following is the README file of volumetric_drilling project.
 # Drilling Simulator
