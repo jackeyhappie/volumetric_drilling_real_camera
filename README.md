@@ -26,7 +26,7 @@ We create ROS nodes by "afROSNode::getNode()" and subscribe proper rostopic to r
 Running the project, we can see the processed AMBF videos are replaced by the processed real videos from stereo microscope.
 
 ## "./plugin/camera_hmd/shaders/hmd_distortion.fs"
-This file contains the distortion process for both groups of stereo videos.
+This file contains the distortion process for both groups of stereo videos. It processes normal videos by different kinds of distortion and show then together.
 
 ### The following is the README file of volumetric_drilling project.
 # Drilling Simulator
