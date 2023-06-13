@@ -285,6 +285,7 @@ void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr &msg)
         m_rosImageTexture->m_image->erase();
         //   m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
         m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGB, GL_UNSIGNED_BYTE);
+        // m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGBA, GL_UNSIGNED_BYTE);
     }
 
     //  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;
