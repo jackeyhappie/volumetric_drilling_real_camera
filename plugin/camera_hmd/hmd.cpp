@@ -33,7 +33,7 @@
     \author    <pkunjam1@jhu.edu>
     \author    Punit Kunjam
 */
-//==============================================================================
+//=============================================================================
 
 #include "hmd.h"
 #include <ros/ros.h>
@@ -41,6 +41,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <ambf_server/RosComBase.h>
+#include<ros/console.h>
+
 
 using namespace std;
 
@@ -65,10 +67,12 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 
     m_rosNode = afROSNode::getNode();
     // sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 2, &afCameraHMD::imageCallback, this);
-    sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 2, &afCameraHMD::imageCallback, this);
+    // sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 2, &afCameraHMD::imageCallback, this);
+    sub = m_rosNode->subscribe("/zed2i/zed_node/left_raw/image_raw_color", 2, &afCameraHMD::imageCallback, this);
     m_rosNode2 = afROSNode::getNode();
     // sub2 = m_rosNode2->subscribe("/ambf/env/cameras/stereoR/ImageData", 2, &afCameraHMD::imageCallback2, this);
-    sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 2, &afCameraHMD::imageCallback2, this);
+    // sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 2, &afCameraHMD::imageCallback2, this);
+    sub2 = m_rosNode2->subscribe("/zed2i/zed_node/right_raw/image_raw_color", 2, &afCameraHMD::imageCallback2, this);
 
     m_camera = (afCameraPtr)a_afObjectPtr;
     m_camera->setOverrideRendering(true);
@@ -102,19 +106,27 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     // m_distortion_coeffs[2] = -0.241;
     // m_distortion_coeffs[3] = 0.89;
 
-    // m_distortion_coeffs[0] = 0.008;
-    // m_distortion_coeffs[1] = 0.01;
-    // m_distortion_coeffs[2] = -0.00;
-    // m_distortion_coeffs[3] = 1-m_distortion_coeffs[0]-m_distortion_coeffs[1]-m_distortion_coeffs[2];
-
-    m_distortion_coeffs[0] = 0.008;
-    m_distortion_coeffs[1] = 0.03;
-    m_distortion_coeffs[2] = -0.001;
+    // For ZED 2i
+    // m_distortion_coeffs[0] = 0.127;
+    // m_distortion_coeffs[1] = -0.39;
+    // m_distortion_coeffs[2] = 0.318;
+    m_distortion_coeffs[0] = -0.072;
+    m_distortion_coeffs[1] = 0.386;
+    m_distortion_coeffs[2] = -0.702;
     m_distortion_coeffs[3] = 1-m_distortion_coeffs[0]-m_distortion_coeffs[1]-m_distortion_coeffs[2];
 
-    m_distortion_coeffs2[0] = 0.008;
-    m_distortion_coeffs2[1] = 0.5;
-    m_distortion_coeffs2[2] = -0.3;
+    // For microscope
+    // m_distortion_coeffs[0] = -0.132;
+    // m_distortion_coeffs[1] = 0.555;
+    // m_distortion_coeffs[2] = -0.772;
+    // m_distortion_coeffs[3] = 1-m_distortion_coeffs[0]-m_distortion_coeffs[1]-m_distortion_coeffs[2];
+
+    m_distortion_coeffs2[0] = 0.098;
+    m_distortion_coeffs2[1] = 0.324;
+    m_distortion_coeffs2[2] = -0.241;
+    // m_distortion_coeffs2[0] = 0.000;
+    // m_distortion_coeffs2[1] = 0.0;
+    // m_distortion_coeffs2[2] = -0.0;
     m_distortion_coeffs2[3] = 1-m_distortion_coeffs2[0]-m_distortion_coeffs2[1]-m_distortion_coeffs2[2];
 
     m_aberr_scale[0] = 1.0;
@@ -128,6 +140,7 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_sep = 0.057863;
     m_vpos = 0.033896;
     m_vpos2 = 0.033896+0.015;
+    // m_vpos2 = 0.033896;
 
     m_left_lens_center[0] = m_viewport_scale[0] - m_sep / 2.0;
     m_left_lens_center[1] = m_vpos;
@@ -135,10 +148,12 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_right_lens_center[0] = m_sep / 2.0;
     m_right_lens_center[1] = m_vpos;
 
-    m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0-0.015;
+    m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0-0.01;
+    // m_left_lens_center2[0] = m_viewport_scale[0] - m_sep / 2.0;
     m_left_lens_center2[1] = m_vpos2;
 
-    m_right_lens_center2[0] = m_sep / 2.0-0.015;
+    m_right_lens_center2[0] = m_sep / 2.0-0.018;
+    // m_right_lens_center2[0] = m_sep / 2.0;
     m_right_lens_center2[1] = m_vpos2;
 
     m_warp_scale = (m_left_lens_center[0] > m_right_lens_center[0]) ? m_left_lens_center[0] : m_right_lens_center[0];
@@ -256,8 +271,12 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     }
 
     // cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(cv_ptr->image.cols/2,cv_ptr->image.rows/2));
-    //   cv::imshow("Image1", frame);
-    //   cv::waitKey(1);
+    
+    cv::Rect sizeRect(0,0,cv_ptr->image.cols-clipsize,cv_ptr->image.rows);
+    cv_ptr->image = cv_ptr->image(sizeRect);
+
+    // cv::imshow("Image1", cv_ptr->image);
+    // cv::waitKey(1);
 }
 
 void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr &msg)
@@ -274,18 +293,22 @@ void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr &msg)
         ROS_ERROR("Could not convert");
     }
 
+    cv::Rect sizeRect2(clipsize,0,cv_ptr2->image.cols-clipsize,cv_ptr2->image.rows);
+    cv_ptr2->image = cv_ptr2->image(sizeRect2);
+
+
     cv::hconcat(cv_ptr->image, cv_ptr2->image, cv_ptr->image);
     cv::flip(cv_ptr->image, cv_ptr->image, 0);
-    //   cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+    cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_RGBA2BGRA);
     int ros_image_size = cv_ptr->image.cols * cv_ptr->image.rows * cv_ptr->image.elemSize();
     int texture_image_size = m_rosImageTexture->m_image->getWidth() * m_rosImageTexture->m_image->getHeight() * m_rosImageTexture->m_image->getBytesPerPixel();
 
     if (ros_image_size != texture_image_size)
     {
         m_rosImageTexture->m_image->erase();
-        //   m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
-        m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGB, GL_UNSIGNED_BYTE);
-        // m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGBA, GL_UNSIGNED_BYTE);
+        // m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, getImageFormat(cv_ptr->encoding), getImageType(cv_ptr->encoding));
+        m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGBA, GL_UNSIGNED_BYTE); // For ZED 2i
+        // m_rosImageTexture->m_image->allocate(cv_ptr->image.cols, cv_ptr->image.rows, GL_RGB, GL_UNSIGNED_BYTE);
     }
 
     //  cerr << "INFO! Image Sizes" << msg->width << "x" << msg->height << " - " << msg->encoding << endl;

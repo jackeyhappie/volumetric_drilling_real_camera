@@ -31,7 +31,7 @@
     \author    <amunawar@jhu.edu>
     \author    Adnan Munawar
 */
-//==============================================================================
+//=============================================================================
 
 // To silence warnings on MacOS
 #define GL_SILENCE_DEPRECATION
@@ -98,7 +98,7 @@ protected:
     cv_bridge::CvImagePtr cv_ptr, cv_ptr2;
     // cv::Mat frame, frame2;
     cTexture2dPtr m_rosImageTexture;
-    
+    int clipsize=0;
 };
 
 
