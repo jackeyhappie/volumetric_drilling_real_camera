@@ -40,6 +40,9 @@
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <chai3d.h>
+#include <std_msgs/Int32.h>
+#include <std_msgs/String.h>
+
 using namespace std;
 using namespace ambf;
 
@@ -54,6 +57,9 @@ public:
     virtual bool close() override;
     void imageCallback(const sensor_msgs::ImageConstPtr& msg);
     void imageCallback2(const sensor_msgs::ImageConstPtr& msg);
+    void numberCallback(const std_msgs::Int32::ConstPtr& msg);
+    void stringCallback(const std_msgs::String::ConstPtr& msg);
+
     // void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
     // void imageCallback2(const sensor_msgs::CompressedImage::ConstPtr& msg);
     
@@ -94,11 +100,13 @@ protected:
 
     ros::NodeHandle* m_rosNode;
     ros::NodeHandle* m_rosNode2;
-    ros::Subscriber sub, sub2;
+    ros::NodeHandle* mode_rosNode;
+    ros::Subscriber sub, sub2, sub3;
     cv_bridge::CvImagePtr cv_ptr, cv_ptr2;
     // cv::Mat frame, frame2;
     cTexture2dPtr m_rosImageTexture;
     int clipsize=0;
+    int mode=1;
 };
 
 

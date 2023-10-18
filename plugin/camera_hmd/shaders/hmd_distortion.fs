@@ -1,5 +1,8 @@
 #version 120
 
+//Setting window number
+uniform int windowNumber;
+
 //per eye texture to warp for lens distortion
 uniform sampler2D warpTexture;
 uniform sampler2D warpTexture2;
@@ -66,57 +69,61 @@ void main()
     float green = texture2D(warpTexture, tc_g).g;
     float blue = texture2D(warpTexture, tc_b).b;
     
-    
-    //For video 2
-    vec2 output_loc2 = gl_TexCoord[0].xy;
-    vec2 LensCenter2;
-    float offset2;
-    if (output_loc2[0] <= 0.5){
-      offset2 = 0.0;
-      LensCenter2 = LensCenterLeft2;
+    if (windowNumber==1){
+      //Black edges off the texture
+      gl_FragColor = ((tc_g.x - offset < 0.0) || (tc_g.x - offset > 0.5) || (tc_g.y < 0.0) || (tc_g.y > 1.0)) ? vec4(0.0, 0.0, 0.0, 1.0) : vec4(red, green, blue, 1.0);
     }
     else{
-      offset2 = 0.5;
-      LensCenter2 = LensCenterRight2;
-    }
+      //For video 2
+      vec2 output_loc2 = gl_TexCoord[0].xy;
+      vec2 LensCenter2;
+      float offset2;
+      if (output_loc2[0] <= 0.5){
+        offset2 = 0.0;
+        LensCenter2 = LensCenterLeft2;
+      }
+      else{
+        offset2 = 0.5;
+        LensCenter2 = LensCenterRight2;
+      }
 
-    output_loc2[0] = (output_loc2[0] - offset2) * 2.0;
-    //Compute fragment location in lens-centered coordinates at world scale
-	  vec2 r2 = output_loc2 * ViewportScale - LensCenter2;
-    //scale for distortion model
-    //distortion model has r=1 being the largest circle inscribed (e.g. eye_w/2)
-    r2 /= WarpScale;
+      output_loc2[0] = (output_loc2[0] - offset2) * 2.0;
+      //Compute fragment location in lens-centered coordinates at world scale
+      vec2 r2 = output_loc2 * ViewportScale - LensCenter2;
+      //scale for distortion model
+      //distortion model has r=1 being the largest circle inscribed (e.g. eye_w/2)
+      r2 /= WarpScale;
 
-    //|r|**2
-    float r_mag2 = length(r2);
-    //offset for which fragment is sourced
-    vec2 r_displaced2 = r2 * (HmdWarpParam2.w + HmdWarpParam2.z * r_mag2 +
-    HmdWarpParam2.y * r_mag2 * r_mag2 +
-    HmdWarpParam2.x * r_mag2 * r_mag2 * r_mag2);
-    //back to world scale
-    r_displaced2 *= WarpScale;
-    //back to viewport co-ord
-    vec2 tc_r2 = (LensCenter2 + aberr2.r * r_displaced2) / ViewportScale;
-    vec2 tc_g2 = (LensCenter2 + aberr2.g * r_displaced2) / ViewportScale;
-    vec2 tc_b2 = (LensCenter2 + aberr2.b * r_displaced2) / ViewportScale;
+      //|r|**2
+      float r_mag2 = length(r2);
+      //offset for which fragment is sourced
+      vec2 r_displaced2 = r2 * (HmdWarpParam2.w + HmdWarpParam2.z * r_mag2 +
+      HmdWarpParam2.y * r_mag2 * r_mag2 +
+      HmdWarpParam2.x * r_mag2 * r_mag2 * r_mag2);
+      //back to world scale
+      r_displaced2 *= WarpScale;
+      //back to viewport co-ord
+      vec2 tc_r2 = (LensCenter2 + aberr2.r * r_displaced2) / ViewportScale;
+      vec2 tc_g2 = (LensCenter2 + aberr2.g * r_displaced2) / ViewportScale;
+      vec2 tc_b2 = (LensCenter2 + aberr2.b * r_displaced2) / ViewportScale;
 
-    tc_r2[0] = (tc_r2[0] / 2.0 ) + offset2;
-    tc_g2[0] = (tc_g2[0] / 2.0 ) + offset2;
-    tc_b2[0] = (tc_b2[0] / 2.0 ) + offset2;
+      tc_r2[0] = (tc_r2[0] / 2.0 ) + offset2;
+      tc_g2[0] = (tc_g2[0] / 2.0 ) + offset2;
+      tc_b2[0] = (tc_b2[0] / 2.0 ) + offset2;
 
-    float red2 = texture2D(warpTexture2, tc_r2).r;
-    float green2 = texture2D(warpTexture2, tc_g2).g;
-    float blue2 = texture2D(warpTexture2, tc_b2).b;
-    //Black edges off the texture
+      float red2 = texture2D(warpTexture2, tc_r2).r;
+      float green2 = texture2D(warpTexture2, tc_g2).g;
+      float blue2 = texture2D(warpTexture2, tc_b2).b;
+      //Black edges off the texture
 
-    if ((tc_g2.x - offset2 < 0.0) || (tc_g2.x - offset2 > 0.5) || (tc_g2.y < 0.0) || (tc_g2.y > 1.0))
-    {
-      if ((tc_g.x - offset2 < 0.0) || (tc_g.x - offset2 > 0.5) || (tc_g.y < 0.0) || (tc_g.y > 1.0))
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      if ((tc_g2.x - offset2 < 0.0) || (tc_g2.x - offset2 > 0.5) || (tc_g2.y < 0.0) || (tc_g2.y > 1.0))
+      {
+        if ((tc_g.x - offset2 < 0.0) || (tc_g.x - offset2 > 0.5) || (tc_g.y < 0.0) || (tc_g.y > 1.0))
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        else
+          gl_FragColor = vec4(red, green, blue, 1.0);
+      }
       else
-        gl_FragColor = vec4(red, green, blue, 1.0);
+        gl_FragColor = vec4(red2, green2, blue2, 1.0);
     }
-    else
-      gl_FragColor = vec4(red2, green2, blue2, 1.0);
-    // gl_FragColor = vec4(gl_TexCoord[0].xy, 0.0, 1.);
 };
