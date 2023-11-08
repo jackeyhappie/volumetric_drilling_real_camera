@@ -42,6 +42,8 @@
 #include <chai3d.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Float32.h>
+#include <diagnostic_msgs/KeyValue.h>
 
 using namespace std;
 using namespace ambf;
@@ -59,6 +61,11 @@ public:
     void imageCallback2(const sensor_msgs::ImageConstPtr& msg);
     void numberCallback(const std_msgs::Int32::ConstPtr& msg);
     void stringCallback(const std_msgs::String::ConstPtr& msg);
+    void floatCallback1(const std_msgs::Float32::ConstPtr& msg);
+    void floatCallback2(const std_msgs::Float32::ConstPtr& msg);
+    void floatCallback3(const std_msgs::Float32::ConstPtr& msg);
+    void floatCallback4(const std_msgs::Float32::ConstPtr& msg);
+    void KVCallback(const diagnostic_msgs::KeyValue::ConstPtr& msg);
 
     // void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
     // void imageCallback2(const sensor_msgs::CompressedImage::ConstPtr& msg);
@@ -101,12 +108,16 @@ protected:
     ros::NodeHandle* m_rosNode;
     ros::NodeHandle* m_rosNode2;
     ros::NodeHandle* mode_rosNode;
-    ros::Subscriber sub, sub2, sub3;
+    ros::NodeHandle* para_rosNode1;
+    ros::NodeHandle* para_rosNode2;
+    ros::NodeHandle* para_rosNode3;
+    ros::NodeHandle* para_rosNode4;
+    ros::Subscriber sub, sub2, sub3, sub4, sub5, sub6, sub7;
     cv_bridge::CvImagePtr cv_ptr, cv_ptr2;
     // cv::Mat frame, frame2;
     cTexture2dPtr m_rosImageTexture;
-    int clipsize=0;
-    int mode=1;
+    int clipsize=0.3;
+    int mode=2;
 };
 
 

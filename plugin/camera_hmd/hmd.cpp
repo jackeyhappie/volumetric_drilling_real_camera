@@ -69,6 +69,10 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     m_rosNode = afROSNode::getNode();
     m_rosNode2 = afROSNode::getNode();
     mode_rosNode = afROSNode::getNode();
+    para_rosNode1 = afROSNode::getNode();
+    para_rosNode2 = afROSNode::getNode();
+    para_rosNode3 = afROSNode::getNode();
+    para_rosNode4 = afROSNode::getNode();
 
     // sub = m_rosNode->subscribe("/ambf/env/cameras/stereoL/ImageData", 2, &afCameraHMD::imageCallback, this);
     // sub = m_rosNode->subscribe("/decklink_left/camera/image_raw", 2, &afCameraHMD::imageCallback, this);
@@ -78,7 +82,14 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
     // sub2 = m_rosNode2->subscribe("/decklink_right/camera/image_raw", 2, &afCameraHMD::imageCallback2, this);
     sub2 = m_rosNode2->subscribe("/zed2i/zed_node/right_raw/image_raw_color", 2, &afCameraHMD::imageCallback2, this);
     
+    // sub3= mode_rosNode->subscribe("/volumetric/camera_params/op_mode", 2, &afCameraHMD::KVCallback,this);
+    // sub3= mode_rosNode->subscribe("/mode_topic", 2, &afCameraHMD::KVCallback,this);
     sub3= mode_rosNode->subscribe("/volumetric/camera_params/op_mode", 2, &afCameraHMD::numberCallback,this);
+
+    sub4 = para_rosNode1->subscribe("/volumetric/camera_params/dist_params1", 2, &afCameraHMD::floatCallback1,this);
+    sub5 = para_rosNode2->subscribe("/volumetric/camera_params/dist_params2", 2, &afCameraHMD::floatCallback2,this);
+    sub6 = para_rosNode3->subscribe("/volumetric/camera_params/dist_params3", 2, &afCameraHMD::floatCallback3,this);
+    sub7 = para_rosNode4->subscribe("/volumetric/camera_params/dist_params4", 2, &afCameraHMD::floatCallback4,this);
 
     m_camera = (afCameraPtr)a_afObjectPtr;
     m_camera->setOverrideRendering(true);
@@ -230,6 +241,39 @@ void afCameraHMD::numberCallback(const std_msgs::Int32::ConstPtr& msg)
     mode= msg->data;
 }
 
+void afCameraHMD::floatCallback1(const std_msgs::Float32::ConstPtr& msg)
+{
+    // ROS_INFO_STREAM("1");
+    m_distortion_coeffs[0] = msg->data;
+}
+
+void afCameraHMD::floatCallback2(const std_msgs::Float32::ConstPtr& msg)
+{
+    // ROS_INFO_STREAM("1");
+    m_distortion_coeffs[1] = msg->data;
+}
+
+void afCameraHMD::floatCallback3(const std_msgs::Float32::ConstPtr& msg)
+{
+    // ROS_INFO_STREAM("1");
+    m_distortion_coeffs[2] = msg->data;
+}
+
+void afCameraHMD::floatCallback4(const std_msgs::Float32::ConstPtr& msg)
+{
+    // ROS_INFO_STREAM("1");
+    clipsize = msg->data;
+}
+
+void afCameraHMD::KVCallback(const diagnostic_msgs::KeyValue::ConstPtr& msg)
+{
+    // ROS_INFO_STREAM("1");
+    if (msg->value!="mode 1"){
+        mode=1;
+    }
+}
+
+
 GLenum getImageFormat(const std::string &encoding)
 {
     if (encoding.compare("rgb8") == 0 || encoding.compare("rgba8") || encoding.compare("rgb16") || encoding.compare("rgba16"))
@@ -284,7 +328,7 @@ void afCameraHMD::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 
     // cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(cv_ptr->image.cols/2,cv_ptr->image.rows/2));
     
-    cv::Rect sizeRect(0,0,cv_ptr->image.cols-clipsize,cv_ptr->image.rows);
+    cv::Rect sizeRect(0,0,cv_ptr->image.cols-cv_ptr->image.cols*clipsize,cv_ptr->image.rows);
     cv_ptr->image = cv_ptr->image(sizeRect);
 
     // cv::imshow("Image1", cv_ptr->image);
@@ -305,7 +349,7 @@ void afCameraHMD::imageCallback2(const sensor_msgs::ImageConstPtr &msg)
         ROS_ERROR("Could not convert");
     }
 
-    cv::Rect sizeRect2(clipsize,0,cv_ptr2->image.cols-clipsize,cv_ptr2->image.rows);
+    cv::Rect sizeRect2(clipsize,0,cv_ptr2->image.cols-cv_ptr2->image.cols*clipsize,cv_ptr2->image.rows);
     cv_ptr2->image = cv_ptr2->image(sizeRect2);
 
 
@@ -378,28 +422,8 @@ void afCameraHMD::updateHMDParams()
     GLint id = m_shaderPgm->getId();
     //    cerr << "INFO! Shader ID " << id << endl;
     glUseProgram(id);
-    
-    // glUniform1i(glGetUniformLocation(id, "warpTexture"), m_rosImageTexture->getTextureId());
-    if (mode==0){
-        //Main window--AMBF
-        //Small window--Camera
-        glUniform1i(glGetUniformLocation(id, "windowNumber"), 2);
-        glUniform1i(glGetUniformLocation(id, "warpTexture"), 2);
-        glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
-        glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
-        glUniform3fv(glGetUniformLocation(id, "aberr2"), 1, m_aberr_scale2);
-        glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale * m_warp_adj);
-        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam"), 1, m_distortion_coeffs);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterLeft"), 1, m_left_lens_center);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterRight"), 1, m_right_lens_center);
-        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam2"), 1, m_distortion_coeffs2);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterLeft2"), 1, m_left_lens_center2);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterRight2"), 1, m_right_lens_center2);
-    }
-    else if (mode==1){
-        //Main window--Camera
-        //Small window--AMBF
-        glUniform1i(glGetUniformLocation(id, "windowNumber"), 2);
+
+        glUniform1i(glGetUniformLocation(id, "windowNumber"), mode);
         glUniform1i(glGetUniformLocation(id, "warpTexture2"), 2);
         glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
         glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
@@ -408,34 +432,10 @@ void afCameraHMD::updateHMDParams()
         glUniform4fv(glGetUniformLocation(id, "HmdWarpParam"), 1, m_distortion_coeffs);
         glUniform2fv(glGetUniformLocation(id, "LensCenterLeft"), 1, m_left_lens_center);
         glUniform2fv(glGetUniformLocation(id, "LensCenterRight"), 1, m_right_lens_center);
-        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam2"), 1, m_distortion_coeffs2);
+        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam2"), 1, m_distortion_coeffs);
         glUniform2fv(glGetUniformLocation(id, "LensCenterLeft2"), 1, m_left_lens_center2);
         glUniform2fv(glGetUniformLocation(id, "LensCenterRight2"), 1, m_right_lens_center2);
-    }
-    else if (mode==2){
-        //Main window--AMBF
-        //No small window
-        glUniform1i(glGetUniformLocation(id, "windowNumber"), 1);
-        glUniform1i(glGetUniformLocation(id, "warpTexture"), 2);
-        glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
-        glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
-        glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale * m_warp_adj);
-        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam"), 1, m_distortion_coeffs);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterLeft"), 1, m_left_lens_center);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterRight"), 1, m_right_lens_center);
-    }
-    else if (mode==3){
-        //Main window--Camera
-        //No small window
-        glUniform1i(glGetUniformLocation(id, "windowNumber"), 1);
-        // glUniform1i(glGetUniformLocation(id, "warpTexture"), 2);
-        glUniform2fv(glGetUniformLocation(id, "ViewportScale"), 1, m_viewport_scale);
-        glUniform3fv(glGetUniformLocation(id, "aberr"), 1, m_aberr_scale);
-        glUniform1f(glGetUniformLocation(id, "WarpScale"), m_warp_scale * m_warp_adj);
-        glUniform4fv(glGetUniformLocation(id, "HmdWarpParam"), 1, m_distortion_coeffs);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterLeft"), 1, m_left_lens_center);
-        glUniform2fv(glGetUniformLocation(id, "LensCenterRight"), 1, m_right_lens_center);
-    }
+
 }
 
 void afCameraHMD::makeFullScreen()
